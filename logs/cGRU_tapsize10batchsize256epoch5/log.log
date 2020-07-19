@@ -1,0 +1,20 @@
+2020-07-19 22:50:17,467 cGRU.py[line:81] INFO name:cGRU
+2020-07-19 22:50:17,467 cGRU.py[line:82] INFO tap_size:10
+2020-07-19 22:50:17,467 cGRU.py[line:83] INFO epoch:5
+2020-07-19 22:50:17,467 cGRU.py[line:84] INFO n_units:80
+2020-07-19 22:50:17,467 cGRU.py[line:85] INFO learning_rate:0.001
+2020-07-19 22:50:17,467 cGRU.py[line:86] INFO batch_size:256
+2020-07-19 22:50:17,468 cGRU.py[line:87] INFO activation:<function mod_relu at 0x000001AA41B211E0>
+2020-07-19 22:50:19,020 deprecation.py[line:323] WARNING From D:\Anaconda3\envs\Complex-gated-recurrent-neural-networks-master\lib\site-packages\tensorflow\python\framework\op_def_library.py:263: colocate_with (from tensorflow.python.framework.ops) is deprecated and will be removed in a future version.
+Instructions for updating:
+Colocations handled automatically by placer.
+2020-07-19 22:50:19,030 deprecation.py[line:323] WARNING From D:/pycharm/EEG-STFT/cGRU.py:136: dynamic_rnn (from tensorflow.python.ops.rnn) is deprecated and will be removed in a future version.
+Instructions for updating:
+Please use `keras.layers.RNN(cell)`, which is equivalent to this API
+2020-07-19 22:50:19,305 deprecation.py[line:323] WARNING From D:\Anaconda3\envs\Complex-gated-recurrent-neural-networks-master\lib\site-packages\tensorflow\python\ops\losses\losses_impl.py:667: to_float (from tensorflow.python.ops.math_ops) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use tf.cast instead.
+2020-07-19 22:50:19,324 deprecation.py[line:323] WARNING From D:\pycharm\EEG-STFT\src\cGRU_src\addition.py:66: div (from tensorflow.python.ops.math_ops) is deprecated and will be removed in a future version.
+Instructions for updating:
+Deprecated in favor of operator or tf.math.divide.
+2020-07-19 22:50:32,126 cGRU.py[line:222] INFO all R2:0.5530131730607519
