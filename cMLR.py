@@ -6,7 +6,7 @@ import numpy as np
 import time
 
 #读取数据
-mat = mat = scipy.io.loadmat('data/test.mat')
+mat = mat = scipy.io.loadmat('data/test_cGRU.mat')
 EMG = mat['S1']
 EEG = mat['S2']
 freq_num = EEG.shape[0]

@@ -23,20 +23,18 @@ from custom_optimizers import RMSpropNatGrad
 from synthetic_experiments import compute_parameter_total
 from sklearn.metrics import r2_score
 import logging
-from preprocess import complex_data_chunking
-from preprocess import complex_data_dechunking
+from preprocess import *
 # 读取数据
-mat = mat = scipy.io.loadmat('data/test_cGRU.mat')
-EMG = mat['S1']
-EEG = mat['S2']
+mat = mat = scipy.io.loadmat('data/test_rGRU.mat')
+EMG = mat['EMG']
+EEG = mat['EEG']
 time_str = time.strftime("%Y-%m-%d_%H-%M-%S", time.gmtime())
-freq_num = EEG.shape[0]
-sample_num = EEG.shape[1]
-ch_num = EEG.shape[2]
-
+sample_num = EEG.shape[0]
+EEG_ch_num = EEG.shape[1]
+EMG_ch_num = EMG.shape[1]
 
 # 参数
-name='cGRU'
+name='rGRU'
 tap_size = 10
 epoch = 5
 n_units = 80  # 隐状态长度 hiden_size
@@ -52,7 +50,7 @@ standardize = True #是否标准化
 stiefel = True  # 是否使用stiefel优化
 real = False    # 节点参数是否为实数
 grad_clip = True   #是否进行 gradient clip
-output_size = 70    #输出数据的大小
+output_size = EMG_ch_num    #输出数据的大小
 single_gate = False
 gate_act_lst = [gate_phase_hirose, mod_sigmoid_prod, mod_sigmoid_sum,
                 mod_sigmoid, mod_sigmoid_beta, mod_sigmoid_gamma]
@@ -60,20 +58,17 @@ gate_activation = gate_act_lst[0]
 subfolder = name +'_'+'tapsize'+str(tap_size)+'batchsize'+str(batch_size)+'epoch'+str(epoch) # 结果存储的位置
 
 #日志
-try:
+if os.path.isdir('logs/'+subfolder)==False:
     os.mkdir('logs/'+subfolder)
-except:
-    print(subfolder+' already exist')
 
-try:
+if os.path.isdir('results/'+subfolder)==False:
     os.mkdir('results/' + subfolder)
-except:
-    print(subfolder+'already exist')
 
-try:
+if os.path.isdir('results/' + subfolder + '/'+time_str)==False:
     os.mkdir('results/' + subfolder + '/'+time_str)
-except:
-    print(subfolder+'already exist')
+
+if os.path.isdir('logs/' + subfolder + '/'+time_str)==False:
+    os.mkdir('logs/' + subfolder + '/'+time_str)
 
 logging.basicConfig(level=10,
 			format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
@@ -87,7 +82,7 @@ logging.info('batch_size:'+str(batch_size))
 logging.info('activation:'+str(activation))
 
 # 数据预处理
-X,Y = complex_data_chunking(EEG,EMG,sample_num,freq_num,ch_num,tap_size)
+X,Y = real_data_chunking(EEG, EMG, sample_num, EEG_ch_num, tap_size)
 del EEG
 del EMG
 
@@ -122,15 +117,15 @@ with graph.as_default():
                         activation=activation, gate_activation=gate_activation,
                         stiefel=stiefel,
                         real=real, single_gate=single_gate,
-                        complex_input=True)
+                        complex_input=False)
     elif cell_fun.__name__ == 'GRUCell':
         cell = wg.RealGRUWrapper(cell_fun(num_units=n_units), output_size)
     else:
         cell = cell_fun(num_units=n_units, num_proj=output_size,
                         use_peepholes=True)
     # #### Input & Output ####
-    x = tf.placeholder(tf.complex64, shape=(batch_size, tap_size, ch_num*freq_num), name='EEG')
-    y = tf.placeholder(tf.float32, shape=(batch_size, freq_num*10), name='EMG')
+    x = tf.placeholder(tf.float32, shape=(batch_size, tap_size, EEG_ch_num), name='EEG')
+    y = tf.placeholder(tf.float32, shape=(batch_size, EMG_ch_num), name='EMG')
 
 
     y_hat = tf.nn.dynamic_rnn(cell, x, dtype=tf.float32)
@@ -172,9 +167,7 @@ with tf.Session(graph=graph, config=config) as sess:
     for j in range(0,epoch):
         for i in range(train_iterations):
             x_batch = X_train[(i) * batch_size:(i + 1) * batch_size, :, :]
-            y_batch = np.empty([batch_size,freq_num*10],dtype=float)
-            y_batch[:, 0:freq_num*5] = Y_train[(i) * batch_size:(i + 1) * batch_size, 0:freq_num*5].real
-            y_batch[:, freq_num*5:freq_num*10] = Y_train[(i) * batch_size:(i + 1) * batch_size, 0:freq_num*5].imag
+            y_batch = Y_train[(i) * batch_size:(i + 1) * batch_size]
             feed_dict ={x:x_batch,
                         y:y_batch}
             run_lst = [loss, summary_op, global_step, y_hat,R2,train_op ]
@@ -198,39 +191,37 @@ with tf.Session(graph=graph, config=config) as sess:
 
     test_losses = []
     r2_vals = []
-    y_batchs=np.empty([test_iterations*batch_size,70],dtype='float32')
-    Y_hats=np.empty([test_iterations*batch_size,70],dtype='float32')
+    actual=np.empty([test_iterations * batch_size, EMG_ch_num], dtype='float32')
+    pred=np.empty([test_iterations * batch_size, EMG_ch_num], dtype='float32')
     for i in range(test_iterations):
-        x_batch = X_test[(i) * batch_size:(i + 1) * batch_size, :, :]
-        y_batch = np.empty([batch_size, 70], dtype=float)
-        y_batch[:, 0:freq_num*5] = Y_test[(i) * batch_size:(i + 1) * batch_size, 0:freq_num*5].real
-        y_batch[:, freq_num*5:freq_num*10] = Y_test[(i) * batch_size:(i + 1) * batch_size, 0:freq_num*5].imag
+        x_batch = X_train[(i) * batch_size:(i + 1) * batch_size, :, :]
+        y_batch = Y_train[(i) * batch_size:(i + 1) * batch_size]
         feed_dict ={x:x_batch,
                     y:y_batch}
         run_lst = [loss, summary_op, global_step, train_op]
         np_loss_test,Y_hat,r2 = sess.run([loss,y_hat,R2], feed_dict=feed_dict)
-        y_batchs[i*batch_size:((i+1)*batch_size),:]=y_batch
-        Y_hats[i*batch_size:((i+1)*batch_size),:]=Y_hat
+        actual[i * batch_size:((i + 1) * batch_size), :]=y_batch
+        pred[i * batch_size:((i + 1) * batch_size), :]=Y_hat
         print('R2_'+str(i),':',r2)
         test_losses.append(np_loss_test)
         r2_vals.append(r2)
 
     #输出结果
     print('test loss', np.mean(test_losses),'R2:',np.mean(r2_vals))
-    r2_val = r2_score(y_batchs, Y_hats, multioutput='variance_weighted')
+    r2_val = r2_score(actual, pred, multioutput='variance_weighted')
     print('all R2', r2_val)
     logging.info('all R2:'+str(r2_val))
 
-    #整理数据回到原格式
-    actual,pred = complex_data_dechunking(y_batchs,Y_hats,test_iterations,batch_size)
 
     #从标准化变回
     if standardize:
-        actual[:, :, :, 0] = actual[:, :, :, 0] * Y_std + Y_mean.real
-        actual[:, :, :, 1] = actual[:, :, :, 1] * Y_std + Y_mean.imag
-        pred[:, :, :, 0] = pred[:, :, :, 0] * Y_std + Y_mean.real
-        pred[:, :, :, 1] = pred[:, :, :, 1] * Y_std + Y_mean.imag
+        actual = actual*Y_std+Y_mean
+        pred = pred * Y_std + Y_mean
 
+    r2_val=np.empty([5])
+    for i in range(EMG_ch_num):
+        r2_val[i]=r2_score(actual[:,i], pred[:,i], multioutput='variance_weighted')
+    print('R2 for each channel:',r2_val)
 
     #保存结果
     scipy.io.savemat('results/'+subfolder+'/'+time_str+'/'+subfolder+'.mat',{'actual':actual,'pred':pred})

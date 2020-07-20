@@ -37,3 +37,10 @@ def complex_data_dechunking(actual, pred, test_iterations, batch_size):
     actual = np.transpose(actual, (2, 0, 3, 1))
     pred = np.transpose(pred, (2, 0, 3, 1))
     return actual,pred
+
+def real_data_chunking(eeg, emg, sample_num, ch_num, tap_size):
+    x = np.empty([(sample_num - tap_size), tap_size, ch_num], dtype=float)
+    y = emg[tap_size - 1:sample_num - 1, :]
+    for i in range(tap_size + 1, x.shape[0]):
+        x[i - tap_size - 1, :, 0:ch_num] = eeg[i - tap_size - 1:i - 1, :]
+    return x, y

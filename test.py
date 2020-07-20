@@ -27,7 +27,7 @@ import logging
 from preprocess import complex_data_chunking
 from preprocess import complex_data_dechunking
 # 读取数据
-mat = mat = scipy.io.loadmat('data/test.mat')
+mat = mat = scipy.io.loadmat('data/test_cGRU.mat')
 global EMG
 global EEG
 
