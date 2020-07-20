@@ -65,3 +65,13 @@ def R_squared(labels, predictions):
     total_error = tf.reduce_sum(tf.square(labels - tf.reduce_mean(labels, axis=0)))
     R2 = 1. - tf.div(unexplained_error, total_error)
     return R2
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
